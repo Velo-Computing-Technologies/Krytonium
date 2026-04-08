@@ -1,5 +1,7 @@
-# Compiler flags
 CFLAGS = -m32 -ffreestanding -fno-pie -fno-exceptions -fno-rtti -fno-stack-protector
+
+# List all the new modular C++ files
+OBJS = main.o login.o app.o terminal.o default.o system.o settings.o
 
 all: run
 
@@ -9,11 +11,11 @@ boot.bin: boot.asm
 kernel_entry.o: kernel_entry.asm
 	nasm -f elf32 kernel_entry.asm -o kernel_entry.o
 
-kernel.o: kernel.cpp logo.h
-	g++ $(CFLAGS) -c kernel.cpp -o kernel.o
+%.o: %.cpp orion.h
+	g++ $(CFLAGS) -c $< -o $@
 
-kernel.bin: kernel_entry.o kernel.o
-	ld -m elf_i386 -o kernel.bin -Ttext 0x1000 kernel_entry.o kernel.o --oformat binary
+kernel.bin: kernel_entry.o $(OBJS)
+	ld -m elf_i386 -o kernel.bin -Ttext 0x1000 kernel_entry.o $(OBJS) --oformat binary
 
 os_image.bin: boot.bin kernel.bin
 	cat boot.bin kernel.bin > os_image.bin
