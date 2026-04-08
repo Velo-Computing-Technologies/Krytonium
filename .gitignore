@@ -1,0 +1,10 @@
+
+*.o
+
+
+*.bin
+os_image.bin
+
+
+__pycache__/
+*.pyc
