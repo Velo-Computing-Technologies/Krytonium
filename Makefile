@@ -75,19 +75,33 @@ $(KERNEL): $(OBJS) linker.ld
 
 # -------------------------------------------------------------------------
 # ISO image (bootable via QEMU UEFI / USB stick)
+#
+# Uses the standard Limine hybrid ISO layout:
+#   - BIOS CD El Torito boot (limine-bios-cd.bin) so Limine can resolve
+#     the boot volume correctly under UEFI (avoids the "ambiguous volume"
+#     warning in Limine v8+)
+#   - UEFI El Torito boot (limine-uefi-cd.bin)
+#   - EFI/BOOT/BOOTX64.EFI fallback path for UEFI removable-media boot
 # -------------------------------------------------------------------------
 iso: $(KERNEL)
 	mkdir -p build/iso_root/boot/limine
 	mkdir -p build/iso_root/EFI/BOOT
-	cp $(KERNEL)                     build/iso_root/boot/kernel.elf
-	cp limine.conf                   build/iso_root/boot/limine/limine.conf
-	cp $(LIMINE_DIR)/BOOTX64.EFI    build/iso_root/EFI/BOOT/BOOTX64.EFI
-	cp $(LIMINE_DIR)/limine-uefi-cd.bin build/iso_root/
-	xorriso -as mkisofs \
-	  -R -J                          \
-	  -e limine-uefi-cd.bin          \
-	  -no-emul-boot                  \
-	  -o build/krytonium.iso         \
+	cp $(KERNEL)                              build/iso_root/boot/kernel.elf
+	cp limine.conf                            build/iso_root/boot/limine/limine.conf
+	cp $(LIMINE_DIR)/limine-bios-cd.bin       build/iso_root/boot/limine/
+	cp $(LIMINE_DIR)/limine-bios.sys          build/iso_root/boot/limine/
+	cp $(LIMINE_DIR)/limine-uefi-cd.bin       build/iso_root/boot/limine/
+	cp $(LIMINE_DIR)/BOOTX64.EFI             build/iso_root/EFI/BOOT/BOOTX64.EFI
+	cp $(LIMINE_DIR)/BOOTX64.EFI             build/iso_root/boot/limine/BOOTX64.EFI
+	xorriso -as mkisofs                                           \
+	  -b boot/limine/limine-bios-cd.bin                          \
+	  -no-emul-boot -boot-load-size 4 -boot-info-table           \
+	  --protective-msdos-label                                    \
+	  -eltorito-alt-boot                                          \
+	  -e boot/limine/limine-uefi-cd.bin                          \
+	  -no-emul-boot --efi-boot-part --efi-boot-image             \
+	  -R -J                                                       \
+	  -o build/krytonium.iso                                      \
 	  build/iso_root 2>/dev/null
 	@echo "ISO: build/krytonium.iso"
 
